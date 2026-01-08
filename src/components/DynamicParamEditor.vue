@@ -180,6 +180,7 @@ export default {
       currentIndex: 0,           // 当前选中的参数索引
       paramListPosition: null,   // 参数列表的位置 {top, left}
       paramFilter: '',           // 当前过滤文本
+      paramStartPosition: null,   // 参数列表的起始位置，用于替换整个过滤区域
       
       // ============================================
       // 4. 可用参数列表
@@ -400,17 +401,30 @@ export default {
      */
     onKeydown(cm, event) {
       if (this.showParamList) {
-        // 如果是字母、数字、下划线等可输入字符，更新过滤文本
+        // 如果是字母、数字、下划线等可输入字符，更新过滤文本并插入到编辑器
         if (event.key.match(/[a-zA-Z0-9_]/)) {
           event.preventDefault()
           event.stopPropagation()
+          
+          // 插入字符到编辑器
+          cm.replaceRange(event.key, cm.getCursor())
+          
+          // 更新过滤文本
           this.updateParamFilter(event.key)
           return
         }
-        // 如果是退格键，删除过滤文本的最后一个字符
+        // 如果是退格键，删除过滤文本的最后一个字符并从编辑器删除
         if (event.key === 'Backspace') {
           event.preventDefault()
           event.stopPropagation()
+          
+          // 从编辑器删除字符
+          const cursor = cm.getCursor()
+          if (cursor.ch > 0) {
+            cm.replaceRange('', { line: cursor.line, ch: cursor.ch - 1 }, cursor)
+          }
+          
+          // 删除过滤文本的最后一个字符
           this.removeLastFilterChar()
           return
         }
@@ -460,6 +474,10 @@ export default {
       event.stopPropagation()
       
       const cursor = cm.getCursor()
+      
+      // 记录参数列表的起始位置
+      this.paramStartPosition = { ...cursor }
+      
       cm.replaceRange('{', cursor)
       
       this.showParamList = true
@@ -477,6 +495,11 @@ export default {
     updateParamFilter(char) {
       this.paramFilter += char
       this.currentIndex = 0  // 重置选中索引
+      
+      // 检查过滤后的列表是否为空，如果为空则隐藏参数列表
+      if (this.filteredParams.length === 0) {
+        this.hideParamList()
+      }
     },
     
     /**
@@ -486,6 +509,11 @@ export default {
       if (this.paramFilter) {
         this.paramFilter = this.paramFilter.slice(0, -1)
         this.currentIndex = 0  // 重置选中索引
+        
+        // 检查过滤后的列表是否为空，如果为空则隐藏参数列表
+        if (this.filteredParams.length === 0) {
+          this.hideParamList()
+        }
       }
     },
     
@@ -568,9 +596,15 @@ export default {
       const cm = this.$refs.cmEditor.codemirror
       const param = this.filteredParams[this.currentIndex]
       
-      // 插入完整的参数格式
+      // 插入完整的参数格式，替换整个过滤区域
       const paramText = `{{${param.name}}}`
-      cm.replaceRange(paramText, cm.getCursor())
+      
+      // 如果有起始位置，替换从起始位置到当前光标位置的文本
+      if (this.paramStartPosition) {
+        cm.replaceRange(paramText, this.paramStartPosition, cm.getCursor())
+      } else {
+        cm.replaceRange(paramText, cm.getCursor())
+      }
       
       // 关闭参数列表
       this.hideParamList()
@@ -589,8 +623,15 @@ export default {
     selectParam(param) {
       const cm = this.$refs.cmEditor.codemirror
       
-      // 插入参数
-      cm.replaceRange(`{{${param.name}}}`, cm.getCursor())
+      // 插入参数，替换整个过滤区域
+      const paramText = `{{${param.name}}}`
+      
+      // 如果有起始位置，替换从起始位置到当前光标位置的文本
+      if (this.paramStartPosition) {
+        cm.replaceRange(paramText, this.paramStartPosition, cm.getCursor())
+      } else {
+        cm.replaceRange(paramText, cm.getCursor())
+      }
       
       // 关闭列表
       this.hideParamList()
@@ -608,6 +649,7 @@ export default {
       this.showParamList = false
       this.paramListPosition = null
       this.paramFilter = ''  // 重置过滤文本
+      this.paramStartPosition = null  // 重置起始位置
     },
     
     /**
