@@ -407,9 +407,26 @@ export default {
           case 'ArrowDown':
           case 'Escape':
           case 'Tab':
+          case 'Shift':
+          case 'Control':
+          case 'Alt':
+          case 'Meta':
+          case 'CapsLock':
+          case 'NumLock':
+          case 'ScrollLock':
+          case 'Insert':
+          case 'Home':
+          case 'End':
+          case 'PageUp':
+          case 'PageDown':
             event.preventDefault()
             event.stopPropagation()
-            this.handleParamListNavigation(event)
+            
+            // 只处理箭头和特殊功能键，其他修饰键不执行任何操作
+            if (event.key === 'ArrowUp' || event.key === 'ArrowDown' || 
+                event.key === 'Escape' || event.key === 'Tab') {
+              this.handleParamListNavigation(event)
+            }
             return
             
           case 'Enter':
@@ -451,6 +468,11 @@ export default {
               this.updateParamFilter(event.key)
               return
             }
+            
+            // 其他不可输入字符也阻止默认行为
+            event.preventDefault()
+            event.stopPropagation()
+            return
         }
       }
       
@@ -716,21 +738,36 @@ export default {
           
           // 查找对应的参数信息
           const paramInfo = this.availableParams.find(p => p.name === varName)
+          const isParamValid = !!paramInfo
           
           // 创建 Widget 元素
           const widgetElement = document.createElement('span')
-          widgetElement.className = 'variable-widget'
-          widgetElement.style.cssText = `
+          widgetElement.className = `variable-widget ${isParamValid ? 'valid' : 'invalid'}`
+          
+          // 根据参数是否存在设置不同的样式
+          widgetElement.style.cssText = isParamValid ? `
             background-color: #e8f5e9;
             color: #2e7d32;
             font-weight: bold;
             cursor: pointer;
+          ` : `
+            background-color: #ffebee;
+            color: #c62828;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-style: wavy;
           `
+          
           widgetElement.textContent = `{{${varName}}}`
           
           // 添加鼠标悬停事件
           widgetElement.addEventListener('mouseover', (event) => {
-            this.hoveredParam = paramInfo || { name: varName, description: '未知变量', example: '' }
+            this.hoveredParam = paramInfo || { 
+              name: varName, 
+              description: isParamValid ? paramInfo.description : '未知变量，不在参数列表中', 
+              example: isParamValid ? paramInfo.example : '' 
+            }
             this.tooltipPosition = {
               top: event.clientY,
               left: event.clientX
