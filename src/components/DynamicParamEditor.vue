@@ -401,43 +401,57 @@ export default {
      */
     onKeydown(cm, event) {
       if (this.showParamList) {
-        // 如果是字母、数字、下划线等可输入字符，更新过滤文本并插入到编辑器
-        if (event.key.match(/[a-zA-Z0-9_]/)) {
-          event.preventDefault()
-          event.stopPropagation()
-          
-          // 插入字符到编辑器
-          cm.replaceRange(event.key, cm.getCursor())
-          
-          // 更新过滤文本
-          this.updateParamFilter(event.key)
-          return
+        // 先处理导航键和特殊键
+        switch (event.key) {
+          case 'ArrowUp':
+          case 'ArrowDown':
+          case 'Escape':
+          case 'Tab':
+            event.preventDefault()
+            event.stopPropagation()
+            this.handleParamListNavigation(event)
+            return
+            
+          case 'Enter':
+            event.preventDefault()
+            event.stopPropagation()
+            this.confirmParamSelection()
+            return
+            
+          case 'Backspace':
+            event.preventDefault()
+            event.stopPropagation()
+            
+            // 从编辑器删除字符
+            const cursor = cm.getCursor()
+            if (cursor.ch > 0) {
+              cm.replaceRange('', { line: cursor.line, ch: cursor.ch - 1 }, cursor)
+            }
+            
+            // 删除过滤文本的最后一个字符
+            this.removeLastFilterChar()
+            return
+            
+          case 'Delete':
+            event.preventDefault()
+            event.stopPropagation()
+            // Delete 键在参数列表显示时不执行任何操作
+            return
+            
+          default:
+            // 处理可输入字符
+            if (event.key.match(/[a-zA-Z0-9_]/)) {
+              event.preventDefault()
+              event.stopPropagation()
+              
+              // 插入字符到编辑器
+              cm.replaceRange(event.key, cm.getCursor())
+              
+              // 更新过滤文本
+              this.updateParamFilter(event.key)
+              return
+            }
         }
-        // 如果是退格键，删除过滤文本的最后一个字符并从编辑器删除
-        if (event.key === 'Backspace') {
-          event.preventDefault()
-          event.stopPropagation()
-          
-          // 从编辑器删除字符
-          const cursor = cm.getCursor()
-          if (cursor.ch > 0) {
-            cm.replaceRange('', { line: cursor.line, ch: cursor.ch - 1 }, cursor)
-          }
-          
-          // 删除过滤文本的最后一个字符
-          this.removeLastFilterChar()
-          return
-        }
-        // 如果是回车键，选择当前高亮的参数
-        if (event.key === 'Enter') {
-          event.preventDefault()
-          event.stopPropagation()
-          this.confirmParamSelection()
-          return
-        }
-        // 现有导航逻辑
-        this.handleParamListNavigation(event)
-        return
       }
       
       if (event.key === '{') {
