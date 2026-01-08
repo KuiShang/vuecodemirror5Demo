@@ -138,7 +138,7 @@
  * 
  * ============================================
  */
-
+import CodeMirror from 'vue-codemirror'
 export default {
   name: 'DynamicParamEditor',
   
@@ -166,11 +166,7 @@ export default {
         lineNumbers: false,
         lineWrapping: false,
         readOnly: false,
-        scrollbarStyle: 'null',
-        extraKeys: {
-          // 防止 Enter 键换行
-          'Enter': () => { return CodeMirror.Pass }
-        }
+        scrollbarStyle: 'null'
       },
       
       // ============================================
@@ -292,7 +288,11 @@ export default {
   },
   
   mounted() {
+
     this.$nextTick(() => {
+      console.log('mounted',this.$refs.cmEditor.codemirror)
+      console.log('mounted mimeModes text/plain',CodeMirror)
+
       if (this.$refs.cmEditor && this.$refs.cmEditor.codemirror) {
         this.initKeyBindings()
         this.refreshVariableMarkers()
@@ -325,7 +325,9 @@ export default {
      * @returns {string} 格式化后的文本，如 {{userName}}
      */
     getParamDisplay(name) {
-      return `{{${name}}}`
+      // return `{{${name}}}`
+      return name
+
     },
     
     /**
@@ -476,8 +478,15 @@ export default {
         }
       }
       
-      if (event.key === '{') {
+      if (event.key === '$') {
         this.onOpenBrace(cm, event)
+        return
+      }
+      
+      // 防止 Enter 键换行
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        event.stopPropagation()
         return
       }
       
@@ -514,7 +523,7 @@ export default {
       // 记录参数列表的起始位置
       this.paramStartPosition = { ...cursor }
       
-      cm.replaceRange('{', cursor)
+      cm.replaceRange('$', cursor)
       
       this.showParamList = true
       this.currentIndex = 0
@@ -626,14 +635,14 @@ export default {
      * 确认参数选择
      * 
      * 将选中的参数插入到编辑器中
-     * 格式为：{{变量名称}}
+     * 格式为：${变量名称}
      */
     confirmParamSelection() {
       const cm = this.$refs.cmEditor.codemirror
       const param = this.filteredParams[this.currentIndex]
       
       // 插入完整的参数格式，替换整个过滤区域
-      const paramText = `{{${param.name}}}`
+      const paramText = `\${${param.name}}`
       
       // 如果有起始位置，替换从起始位置到当前光标位置的文本
       if (this.paramStartPosition) {
@@ -660,7 +669,7 @@ export default {
       const cm = this.$refs.cmEditor.codemirror
       
       // 插入参数，替换整个过滤区域
-      const paramText = `{{${param.name}}}`
+      const paramText = `\${${param.name}}`
       
       // 如果有起始位置，替换从起始位置到当前光标位置的文本
       if (this.paramStartPosition) {
@@ -724,7 +733,7 @@ export default {
       
       const content = cm.getValue()
       const lines = content.split('\n')
-      const varPattern = /\{\{([^}]+)\}\}/g
+      const varPattern = /\$\{([^}]+)\}/g
       
       // 遍历每一行查找变量
       lines.forEach((line, lineIndex) => {
@@ -759,7 +768,7 @@ export default {
             text-decoration-style: wavy;
           `
           
-          widgetElement.textContent = `{{${varName}}}`
+          widgetElement.textContent = `\${${varName}}`
           
           // 添加鼠标悬停事件
           widgetElement.addEventListener('mouseover', (event) => {
