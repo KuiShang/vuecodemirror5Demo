@@ -1,0 +1,18 @@
+{
+  "name": "apieditorvue2",
+  "version": "1.0.0",
+  "description": "Vue2 + vue-codemirror 动态参数输入框示例",
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build"
+  },
+  "dependencies": {
+    "vue": "^2.7.14",
+    "vue-codemirror": "^4.0.6",
+    "codemirror": "^5.65.13"
+  },
+  "devDependencies": {
+    "@vue/cli-service": "^5.0.8",
+    "vue-template-compiler": "^2.7.14"
+  }
+}
